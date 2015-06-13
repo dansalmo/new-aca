@@ -1,0 +1,64 @@
+<div ng-controller="ArticleDetailCtrl">
+    <div class="row">
+        <div class="col-lg-12">
+            <div id="messages" class="alert alert-{{alertStatus}}" ng-show="messages">
+                <span ng-bind="messages"></span>
+                <i class="dismiss-messages pull-right glyphicon glyphicon-remove" ng-click="messages = ''"
+                   ng-show="messages"></i>
+            </div>
+            <img class="spinner" src="/img/ajax-loader.gif" ng-show="loading"/>
+        </div>
+    </div>
+
+    <div class="row" ng-init="init()">
+        <div class="col-md-9">
+            <div class="well well-sm">
+                <h2>{{article.title}}</h2>
+                <h5>{{article.description}}</h5>
+                <div>
+                    <label for="favorited">Favorited: </label>
+                    <span id="favorited">coming soon</span>
+                </div>
+                <div>
+                    <label for="author">Author: </label>
+                    <span id="author">{{article.authorName}}</span>
+                </div>
+            </div>
+
+            <form class="form" novalidate role="form">
+                <fieldset>
+                    <div>
+                        <label for="title">Title: </label>
+                        <span id="title">{{article.title}}</span>
+                    </div>
+                    <div>
+                        <label for="embed">Embed: </label>
+                        <span id="embed">{{article.embed}}</span>
+                    </div>
+                    <div>
+                        <label for="description">Description: </label>
+                        <span id="description">{{article.description}}</span>
+                    </div>
+                    <div>
+                        <label for="legacy-link">Legacy Link: </label>
+                        <span id="description"><a href="www.artcrimearchive.org/article?id={{article.legacyID}}"></a></span>
+                    </div>
+                    <div>
+                        <label for="tags">Tags: </label>
+                        <span id="tags">
+                            <span ng-repeat="tag in article.tags" class="label label-primary label-separated">{{tag}}</span>
+                        </span>
+                    </div>
+                    <div>
+                        <label for="createDate">Date Created: </label>
+                        <span id="createDate">{{article.dateCreated | date:'dd-MMMM-yyyy'}}</span>
+                    </div>
+                    <div>
+                        <label for="createDate">View: </label>
+                        <select id="view" ng-model="article.view" name="view" ng-options="view.view as view.text for view in views" class="form-control"></select>
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>

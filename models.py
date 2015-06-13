@@ -12,32 +12,22 @@ import httplib
 import endpoints
 from protorpc import messages
 from google.appengine.ext import ndb
+from google.appengine.ext import db
+
+class Articles(db.Model):
+  """Models an individual Archive entry"""
+  author = db.StringProperty()
+  embed = db.TextProperty()
+  title = db.StringProperty()
+  content = db.TextProperty()
+  tags = db.TextProperty()
+  comments = db.ListProperty(db.Text)
+  view = db.StringProperty() #Publish, Preview or Retract
+  date = db.DateTimeProperty(auto_now_add=True)
 
 class ConflictException(endpoints.ServiceException):
     """ConflictException -- exception mapped to HTTP 409 response"""
     http_status = httplib.CONFLICT
-
-class Author(ndb.Model):
-    """Author object"""
-    authorID = ndb.StringProperty()
-    displayName = ndb.StringProperty()
-    mainEmail = ndb.StringProperty()
-    organizations = ndb.StringProperty(repeated=True)
-    favoriteArticles = ndb.StringProperty(repeated=True)
-
-class AuthorForm(messages.Message):
-    """Author outbound form message"""
-    authorID = messages.StringField(1)
-    displayName = messages.StringField(2)
-    mainEmail = messages.StringField(3)
-    websafeAuthorKey = messages.StringField(4)
-    organizations = messages.StringField(5, repeated=True)    
-    favoriteArticles = messages.StringField(6, repeated=True)
-
-class AuthorMiniForm(messages.Message):
-    """Author outbound form message"""
-    displayName = messages.StringField(1)
-    organizations = messages.StringField(2, repeated=True)
 
 class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
@@ -47,23 +37,62 @@ class BooleanMessage(messages.Message):
     """BooleanMessage-- outbound Boolean value message"""
     data = messages.BooleanField(1)
 
+class Author(ndb.Model):
+    """Author object"""
+    authorID = ndb.StringProperty()
+    displayName = ndb.StringProperty()
+    mainEmail = ndb.StringProperty()
+    organizations = ndb.StringProperty(repeated=True)
+    favoriteArticles = ndb.StringProperty(repeated=True)
+    userRights = ndb.StringProperty(default='AUTHOR')
+
+class UserRights(messages.Enum):
+    """UserRights enumeration values for Author"""
+    NONE = 0 #same as non-logged in user
+    AUTHOR = 1
+    FEATURED = 2
+    FELLOW = 3
+    ADMINISTRATOR = 4
+
+class AuthorForm(messages.Message):
+    """Author outbound form message"""
+    authorID = messages.StringField(1)
+    displayName = messages.StringField(2)
+    mainEmail = messages.StringField(3)
+    websafeAuthorKey = messages.StringField(4)
+    organizations = messages.StringField(5, repeated=True)    
+    favoriteArticles = messages.StringField(6, repeated=True)
+    userRights = messages.EnumField('UserRights', 7)
+
+class AuthorMiniForm(messages.Message):
+    """Author outbound form message"""
+    displayName = messages.StringField(1)
+    mainEmail = messages.StringField(2)
+    organizations = messages.StringField(3, repeated=True)
+
 class Article(ndb.Model):
     """Article object - parent is Author"""
     title       = ndb.StringProperty()
-    embed       = ndb.StringProperty()
-    description = ndb.StringProperty()
+    embed       = ndb.TextProperty()
+    content     = ndb.TextProperty()
     authorName  = ndb.StringProperty()
     tags        = ndb.StringProperty(repeated=True)
-    view        = ndb.StringProperty()
+    view        = ndb.StringProperty(default='NOT_PUBLISHED')
     dateCreated = ndb.DateTimeProperty(auto_now_add=True)
     # needed for original ACA article_id links
     legacyID    = ndb.StringProperty()
+
+class View(messages.Enum):
+    """View enumeration values for Article"""
+    RETRACTED = 0
+    NOT_PUBLISHED = 1
+    PUBLISHED = 2
 
 class ArticleForm(messages.Message):
     """Article outbound form message"""
     title       = messages.StringField(1)
     embed       = messages.StringField(2)
-    description = messages.StringField(3)
+    content     = messages.StringField(3)
     authorName  = messages.StringField(4)
     authorID    = messages.StringField(5)
     articleID   = messages.StringField(6)
@@ -71,14 +100,15 @@ class ArticleForm(messages.Message):
     dateCreated = messages.StringField(8)
     websafeAuthorKey   = messages.StringField(9)
     websafeArticleKey  = messages.StringField(10)
-    comments    = messages.StringField(11)
+    view        = messages.EnumField('View', 11)
 
 class ArticleUpdateForm(messages.Message):
     """Article inbound form message"""
     title       = messages.StringField(1)
     embed       = messages.StringField(2)
-    description = messages.StringField(3)
+    content     = messages.StringField(3)
     tags        = messages.StringField(4, repeated=True)
+    view        = messages.EnumField('View', 5)
 
 class GetArticleForm(messages.Message):
     """get Articles form message"""
@@ -100,40 +130,26 @@ class ArticleQueryForms(messages.Message):
 
 class Comment(ndb.Model):
     """Article object - parent is Article or Comment"""
-    comment     = ndb.StringProperty()
-    authorKey  = ndb.StringProperty()
+    comment     = ndb.TextProperty()
     authorName  = ndb.StringProperty()
-    authorID  = ndb.StringProperty()
-    displayName = ndb.StringProperty()
-    dateCreated = ndb.DateProperty()
+    authorID   = ndb.StringProperty()
+    dateCreated = ndb.DateTimeProperty(auto_now_add=True)
 
 class CommentForm(messages.Message):
     """Article outbound form message"""
-    comment     = messages.StringField(1)
+    comment = messages.StringField(1)
     authorName = messages.StringField(2)
     authorID = messages.StringField(3)
-    articleID = messages.StringField(4)
-    commentID = messages.StringField(5)
-    dateCreated = messages.StringField(6)
-    websafeAuthorKey   = messages.StringField(7)
-    websafeArticleKey   = messages.StringField(8)
-    websafeCommentKey  = messages.StringField(9)
+    commentID = messages.StringField(4)
+    dateCreated = messages.StringField(5)
+    websafeAuthorKey   = messages.StringField(6)
+    websafeArticleKey   = messages.StringField(7)
+    websafeCommentKey  = messages.StringField(8)
+
+class CommentUpdateForm(messages.Message):
+    """Article outbound form message"""
+    comment = messages.StringField(1)
 
 class CommentForms(messages.Message):
     """multiple Comment outbound form message"""
     items = messages.MessageField(CommentForm, 1, repeated=True)
-
-class View(messages.Enum):
-    """View enumeration values"""
-    NOT_PUBISHED = 1
-    PUBISHED = 2
-    RETRACTED = 3
-
-class UserRights(messages.Enum):
-    """UserRights enumeration values"""
-    NONE = 0 #same as non-logged in user
-    AUTHOR = 1
-    FEATURED = 2
-    FELLOW = 3
-    FULL_ADMIN = 4
-

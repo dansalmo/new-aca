@@ -1,0 +1,56 @@
+<div ng-controller="MyProfileCtrl" ng-init="init()">
+    <div class="row">
+        <div class="col-lg-12">
+            <div id="messages" class="alert alert-{{alertStatus}}" ng-show="messages">
+                <span ng-bind="messages"></span>
+                <i class="dismiss-messages pull-right glyphicon glyphicon-remove" ng-click="messages = ''"
+                   ng-show="messages"></i>
+            </div>
+            <img class="spinner" src="/img/ajax-loader.gif" ng-show="loading"/>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-8">
+            <h3>My Profile</h3>
+            <form name="profileForm" novalidate role="form">
+                <div>
+                    <label for="author-id">Author ID: </label>
+                    <span id="author-id">{{profile.authorID}}</span>
+                </div>
+
+                <div>
+                    <label for="user-rights">User Rights: </label>
+                    <span id="user-rights">{{profile.userRights}}</span>
+                </div>
+
+                <div class="form-group" ng-class="{'has-warning': profile.displayName != initialProfile.displayName}">
+                    <label for="displayName">Display Name </label>
+                    <span class="label label-warning"
+                          ng-show="profile.displayName != initialProfile.displayName"> Changed</span>
+                    <input id="displayName" type="text" name="displayName" ng-model="profile.displayName"
+                           class="form-control"/>
+                </div>
+
+                <div class="form-group" ng-class="{'has-warning': profile.mainEmail != initialProfile.mainEmail}">
+                    <label for="displayName">Email </label>
+                    <span class="label label-warning"
+                          ng-show="profile.mainEmail != initialProfile.mainEmail"> Changed</span>
+                    <input id="mainEmail" type="text" name="mainEmail" ng-model="profile.mainEmail"
+                           class="form-control"/>
+                </div>
+
+                <div class="form-group" ng-class="{'has-warning': profile.displayName != initialProfile.displayName}">
+                    <label for="organizations">Organizations </label>
+                    <span class="label label-warning"
+                          ng-show="profile.organizations != initialProfile.organizations"> Changed</span>
+                    <input id="organizations" type="text" name="organizations" ng-model="profile.organizations"
+                           class="form-control"/>
+                </div>
+
+                <button ng-click="saveProfile(profileForm)" class="btn btn-primary"
+                        ng-disabled="loading">Update profile
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

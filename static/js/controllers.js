@@ -503,7 +503,7 @@ acaApp.controllers.controller('CreateArticleCtrl',
 acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2Provider, HTTP_ERRORS, acaService, $filter) {
 
     /**
-     * Load the user profile if available for favorites and featured articles.
+     * Load a list of featured article keys.
      */
 
     var promiseFeaturedArticleKeys = acaService.endpoint('getFeaturedArticleKeys');
@@ -527,6 +527,10 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
 
     $scope.loading = true;
     $scope.profile = {};
+
+    /**
+     * Load the user profile if available for favorites.
+     */
 
     promiseMyProfile
         .then(function(result) {

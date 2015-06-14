@@ -17,13 +17,23 @@ var acaApp = acaApp || {};
  */
 acaApp.controllers = angular.module('acaControllers', ['ui.bootstrap', 'acaFilters']);
 
-angular.module('acaFilters', []).filter('inFavorites', function() {
+acaApp.filters = angular.module('acaFilters', []);
+
+acaApp.filters.filter('isFavorite', function() {
     // tests if the article is in the users favorites
     return function(profile, article) {
-        console.log('key', article.websafeArticleKey);
         if (!profile.favoriteArticles)
             return false;
         return profile.favoriteArticles.indexOf(article.websafeArticleKey) !== -1;
+    };
+});
+
+acaApp.filters.filter('isFeatured', function() {
+    // tests if the article is featured
+    return function(keys, article) {
+        keys = keys || [];
+        //console.log('keys', keys, keys.indexOf(article.websafeArticleKey));
+        return keys.indexOf(article.websafeArticleKey) !== -1;
     };
 });
 
@@ -133,7 +143,7 @@ acaApp.controllers.controller('AcaHomeCtrl',
         };
 
         if (article) {
-            if ($filter('inFavorites')($scope.profile, article)) {
+            if ($filter('isFavorite')($scope.profile, article)) {
                 $scope.profile.favoriteArticles.splice(index, 1);
                 promiseFavoriteArticle = acaService.endpoint('removeArticleFromFavorites', params);
             } else {
@@ -496,6 +506,23 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
      * Load the user profile if available for favorites and featured articles.
      */
 
+    var promiseFeaturedArticleKeys = acaService.endpoint('getFeaturedArticleKeys');
+
+    $scope.loading = true;
+
+    promiseFeaturedArticleKeys
+        .then(function(result) {
+            // The request has succeeded.
+            $scope.loading = false;
+            $log.info('getFeaturedArticleKeys success');
+            $scope.featuredKeys = [];
+            angular.forEach(result.items, function (key) {
+                $scope.featuredKeys.push(key.websafeKey);
+            });
+        }, function(error) {
+            $scope.loading = false;
+        });
+
     var promiseMyProfile = acaService.endpoint('getMyProfile');
 
     $scope.loading = true;
@@ -505,14 +532,18 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
         .then(function(result) {
             // The request has succeeded.
             $scope.loading = false;
+            $log.info('getMyProfile success');
             $scope.profile.userRights = result.userRights;
             $scope.profile.favoriteArticles = result.favoriteArticles;
-            console.log('userRights', result.userRights)
         }, function(error) {
             // Failed to get a user profile.
             $scope.loading = false;
         });
 
+
+    /**
+     * Load the featured articles.
+     */
 
     var promiseFeaturedArticles = acaService.endpoint('getFeaturedArticles');
 
@@ -521,7 +552,7 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
             // The request has succeeded.
             $scope.loading = false;
             $scope.submitted = false;
-            $log.info('success');
+            $log.info('getFeaturedArticles success');
             $scope.articles = [];
             angular.forEach(result.items, function (article) {
                 $scope.articles.push(article);
@@ -542,29 +573,55 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
      */
     $scope.toggleFavorite = function (index) {
         var article = $scope.articles[index];
-        var promiseFavoriteArticle;
-        var params = {
-            websafeArticleKey: article.websafeArticleKey
-        };
 
         if (article) {
-            if ($filter('inFavorites')($scope.profile, article)) {
-                $scope.profile.favoriteArticles.splice(index, 1);
-                promiseFavoriteArticle = acaService.endpoint('removeArticleFromFavorites', params);
-            } else {
-                $scope.profile.favoriteArticles = $scope.profile.favoriteArticles || [];
-                $scope.profile.favoriteArticles.splice(index, 0, article.websafeArticleKey);
-                promiseFavoriteArticle = acaService.endpoint('addArticleToFavorites', params);
-            };
-
             $scope.loading = true;
 
-            promiseFavoriteArticle
+            var remove = $filter('isFavorite')($scope.profile, article)
+            var params = {websafeArticleKey: article.websafeArticleKey};
+            var promise = acaService.endpoint(remove ? 'removeArticleFromFavorites': 'addArticleToFavorites', params);
+
+            promise
                 .then(function(result) {
                     // The request has succeeded.
                     $scope.loading = false;
+                    if (remove) {
+                        var favIndex = $scope.profile.favoriteArticles.indexOf(article.websafeArticleKey);
+                        $scope.profile.favoriteArticles.splice(favIndex, 1);
+                    } else {
+                        $scope.profile.favoriteArticles = $scope.profile.favoriteArticles || [];
+                        $scope.profile.favoriteArticles.push(article.websafeArticleKey);
+                    }
                 }, function(error) {
                     console.warn('Failed to modify Favorites.')
+                    $scope.loading = false;
+                });
+        }
+    };
+
+    $scope.toggleFeatured = function (index) {
+        var article = $scope.articles[index];
+
+        if (article) {
+            $scope.loading = true;
+
+            var remove = $filter('isFeatured')($scope.featuredKeys, article)
+            var params = {websafeArticleKey: article.websafeArticleKey};
+            var promise = acaService.endpoint(remove ? 'removeFeaturedArticle': 'addFeaturedArticle', params);
+
+            promise
+                .then(function(result) {
+                    // The request has succeeded.
+                    $scope.loading = false;
+                    if (remove) {
+                        var feaIndex = $scope.featuredKeys.indexOf(article.websafeArticleKey);
+                        $scope.featuredKeys.splice(feaIndex, 1);
+                    } else {
+                        $scope.featuredKeys = $scope.featuredKeys || [];
+                        $scope.featuredKeys.push(article.websafeArticleKey);
+                    }
+                }, function(error) {
+                    console.warn('Failed to modify Featured articles.')
                     $scope.loading = false;
                 });
         }
@@ -585,7 +642,8 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
                 .then(function(result) {
                     // The request has succeeded.
                     $scope.loading = false;
-                    $scope.articles.splice(index, 1);
+                    if ($scope.selectedTab == 'FEATURED')
+                        $scope.articles.splice(index, 1);
                 }, function(error) {
                     console.warn('Failed to remove featured article.')
                     $scope.loading = false;
@@ -657,7 +715,7 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
      */
     $scope.tabAllSelected = function () {
         $scope.selectedTab = 'ALL';
-        $scope.getAllArticles();
+        $scope.callEndpoint('getAllArticles');
     };
 
     /**
@@ -665,7 +723,7 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
      */
     $scope.tabFeaturedSelected = function () {
         $scope.selectedTab = 'FEATURED';
-        $scope.articles('getFeaturedArticles');
+        $scope.callEndpoint('getFeaturedArticles');
     };
 
     /**
@@ -677,8 +735,7 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
             oauth2Provider.showLoginModal();
             return;
         }
-
-        $scope.getMyArticles();
+        $scope.callEndpoint('getMyArticles');
     };
 
     /**
@@ -690,7 +747,7 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
             oauth2Provider.showLoginModal();
             return;
         }
-        $scope.getMyFavoriteArticles();
+        $scope.callEndpoint('getMyFavoriteArticles');
     };
 
     /**
@@ -786,35 +843,10 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
         }
     };
 
-    var gapiArticlesCallback = function (resp) {
-        $scope.$apply(function () {
-            $scope.loading = false;
-            if (resp.error) {
-                // The request has failed.
-                var errorMessage = resp.error.message || '';
-                $scope.messages = 'Failed to get articles : ' + errorMessage;
-                $scope.alertStatus = 'warning';
-                $log.error($scope.messages);
-            } else {
-                // The request has succeeded.
-                $scope.submitted = false;
-                $scope.messages = 'Success';
-                $scope.alertStatus = 'success';
-                $log.info($scope.messages);
-
-                $scope.articles = [];
-                angular.forEach(resp.items, function (article) {
-                    $scope.articles.push(article);
-                });
-            }
-            $scope.submitted = true;
-        });
-    }
-
     /**
      * Invokes the acaService endpoint API to get articles.
      */
-    $scope.articles = function (endpointName, arg) {
+    $scope.callEndpoint = function (endpointName, arg) {
         $scope.loading = true;
         var promise = acaService.endpoint(endpointName, arg);
 
@@ -838,42 +870,6 @@ acaApp.controllers.controller('FindArticlesCtrl', function ($scope, $log, oauth2
             });
 
         }
-
-    /**
-     * Invokes the aca.getAllArticles API.
-     */
-    $scope.getAllArticles = function () {
-        $scope.loading = true;
-        gapi.client.aca.getAllArticles().
-            execute(gapiArticlesCallback);
-    }
-
-    /**
-     * Invokes the aca.getFeaturedArticles API.
-     */
-    $scope.getFeaturedArticles = function () {
-        $scope.loading = true;
-        gapi.client.aca.getFeaturedArticles().
-            execute(gapiArticlesCallback);
-    }
-
-    /**
-     * Invokes the aca.getMyFavoriteArticles API.
-     */
-    $scope.getMyFavoriteArticles = function () {
-        $scope.loading = true;
-        gapi.client.aca.getMyFavoriteArticles().
-            execute(gapiArticlesCallback);
-    }
-
-    /**
-     * Invokes the aca.getMyArticles API.
-     */
-    $scope.getMyArticles = function () {
-        $scope.loading = true;
-        gapi.client.aca.getMyArticles().
-            execute(gapiArticlesCallback);
-    }
 
      /**
      * Invokes the aca.queryArticles API.

@@ -88,6 +88,14 @@ class View(messages.Enum):
     NOT_PUBLISHED = 1
     PUBLISHED = 2
 
+class KeyForm(messages.Message):
+    """KeyForm outbound form message"""
+    websafeKey  = messages.StringField(1)
+
+class KeyForms(messages.Message):
+    """KeyForms -- multiple KeyForm outbound form message"""
+    items = messages.MessageField(KeyForm, 1, repeated=True)
+
 class ArticleForm(messages.Message):
     """Article outbound form message"""
     title       = messages.StringField(1)

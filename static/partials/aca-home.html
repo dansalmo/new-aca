@@ -1,4 +1,4 @@
-<div ng-controller="AcaHomeCtrl">
+<div ng-controller="FindArticlesCtrl">
     <div class="row">
         <div class="col-lg-12">
             <div id="messages" class="alert alert-{{alertStatus}}" ng-show="messages">
@@ -33,7 +33,6 @@
                         <th>Date Created</th>
                         <th>Author</th>
                         <th ng-show="profile.userRights">Favorite</th>
-                        <th ng-show="profile.userRights == 'FELLOW' || profile.userRights == 'ADMINISTRATOR'">Featured</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -42,13 +41,8 @@
                         <td>{{article.dateCreated | date:'dd-MMMM-yyyy'}}</td>
                         <td>{{article.authorName}}</td>
                         <td ng-show="profile.userRights">
-                            <button class="btn btn-xs" ng-class="{'btn-danger': (profile | inFavorites : article)}" ng-click="toggleFavorite($index)">
+                            <button class="btn btn-xs" ng-class="{'btn-danger': (profile | isFavorite : article)}" ng-click="toggleFavorite($index)">
                                 <i class="glyphicon glyphicon-heart"></i>
-                            </button>
-                        </td>
-                        <td ng-show="profile.userRights == 'FELLOW' || profile.userRights == 'ADMINISTRATOR'">
-                            <button class="btn btn-danger btn-xs" ng-click="removeFeatured($index)">
-                                <i class="glyphicon glyphicon-remove"></i>
                             </button>
                         </td>
                     </tr>

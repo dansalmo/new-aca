@@ -26,7 +26,7 @@ from models import ConflictException
 from models import StringMessage
 from models import BooleanMessage
 from models import Author, AuthorForm, AuthorMiniForm
-from models import Articles
+from models import Articles, KeyForm, KeyForms
 from models import Article, ArticleForm, ArticleUpdateForm, GetArticleForm, ArticleForms
 from models import ArticleQueryForm, ArticleQueryForms
 from models import Comment, CommentForm, CommentUpdateForm, CommentForms
@@ -394,6 +394,21 @@ class AcaApi(remote.Service):
         # return set of ArticleForm objects per favorite article
         return ArticleForms(
             items=[self._copyArticleToForm(ndb.Key(urlsafe=key).get()) for key in author.favoriteArticles]
+        )
+
+    @endpoints.method(message_types.VoidMessage, KeyForms,
+            path='featuredArticleKeys',
+            http_method='GET', name='getFeaturedArticleKeys')
+    def getFeaturedArticleKeys(self, request):
+        """Return websafe keys for all featured articles (Favorites of authorID 0)"""
+
+        author = Author.query()\
+            .filter(Author.authorID=='0')\
+            .get()
+
+        # return set of ArticleForm objects per favorite article
+        return KeyForms(
+            items=[KeyForm(websafeKey=key) for key in author.favoriteArticles]
         )
 
     @endpoints.method(ARTICLE_FAVORITES_REQUEST, BooleanMessage,

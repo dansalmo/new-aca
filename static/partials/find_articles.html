@@ -47,7 +47,7 @@
                         <th>Title</th>
                         <th>Date Created</th>
                         <th ng-hide="selectedTab == 'MY_ARTICLES'">Author</th>
-                        <th ng-hide="selectedTab != 'MY_ARTICLES'">View{{profile.userRights}}</th>
+                        <th ng-hide="selectedTab != 'MY_ARTICLES'">View</th>
                         <th ng-show="profile.userRights">Favorite</th>
                         <th ng-show="profile.userRights == 'FELLOW' || profile.userRights == 'ADMINISTRATOR'">Featured</th>
  
@@ -63,12 +63,12 @@
                             <select id="view" ng-model="article.view" name="view" ng-options="view.view as view.text for view in views" class="form-control"></select>
                         </td>
                         <td ng-show="profile.userRights">
-                            <button class="btn btn-xs" ng-class="{'btn-danger': (profile | inFavorites : article)}" ng-click="toggleFavorite($index)">
+                            <button class="btn btn-xs" ng-class="{'btn-danger': (profile | isFavorite : article)}" ng-click="toggleFavorite($index)">
                                 <i class="glyphicon glyphicon-heart"></i>
                             </button>
                         </td>
                         <td ng-show="profile.userRights == 'FELLOW' || profile.userRights == 'ADMINISTRATOR'">
-                            <button class="btn btn-danger btn-xs" ng-click="removeFeatured($index)">
+                            <button class="btn btn-xs" ng-class="{'btn-danger': (featuredKeys | isFeatured : article)}" ng-click="toggleFeatured($index)">
                                 <i class="glyphicon glyphicon-remove"></i>
                             </button>
                         </td>
